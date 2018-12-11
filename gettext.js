@@ -30,3 +30,15 @@
         Object.assign(catalog[language], translations);
     };
 })(window);
+
+extendGettextCatalog('tet', {
+    'Title': 'Titulu',
+    'title': 'titulu',
+    'Description': 'Informasaun detallu',
+    'Delete': 'Hamoos',
+    'Back': 'Fila',
+    'Cancel': 'Kansela',
+    'Save': 'Rai',
+    'Edit': 'Hadia',
+    'Please confirm': 'Favor konfirma',
+});
