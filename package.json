@@ -1,0 +1,13 @@
+{
+  "name": "simple-gettext",
+  "version": "1.0.0",
+  "description": "A barebone gettext implementation for use in Javascript. Supports markdown.",
+  "main": "gettext.js",
+  "repository": "https://github.com/catalpainternational/simple-gettext/",
+  "author": "Raphael Merx <raphael.merx@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "showdown": "^1.9.0"
+  }
+}
