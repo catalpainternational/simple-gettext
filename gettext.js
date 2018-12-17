@@ -81,7 +81,6 @@ if (typeof Object.assign != 'function') {
 
     global.setLanguage = function (newLanguageCode) {
         global.languageCode = newLanguageCode;
-        moment.locale(newLanguageCode);
     };
     global.setLanguage('en');
 
