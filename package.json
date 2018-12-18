@@ -9,6 +9,7 @@
   "private": false,
   "scripts": {
     "lint": "./node_modules/.bin/eslint gettext.js test",
+    "extraction": "./scripts/gettext_extraction.js",
     "test": "karma start",
     "testdev": "karma start --no-single-run --log-level debug"
   },
