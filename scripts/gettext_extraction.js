@@ -2,10 +2,10 @@
 * And performs a naive fix of any issues it finds
 *
 * It does this by:
-* Reading from the gettext.js file and extracting a current set of translations
+* Reading from the gettext.js or extendGettext.js files and extracting a current set of translations
 * Reading every .js and tag .html file and extracting all usages of gettext()
 * Comparing the above for discrepancies
-* Adding any discrepancies found back into gettext.js
+* Adding any discrepancies found back into gettext.js or extendGettext.js
 *
 * After that (what this code does not do):
 * A developer/designer must read gettext.js and supply correct translations
@@ -18,12 +18,9 @@ var glob = require('glob');
 
 // make a Promise version of fs.readFile() - note that v10 of Node has this already
 fs.readFileAsync = function(filename, enc) {
-    if (__dirname.endsWith('/scripts') && filename.startsWith('./')) {
-        filename = '.' + filename;
-    }
-    const actualFileName = path.join(__dirname, filename);
+    console.log(` - reading file: ${filename}`);
     return new Promise(function(resolve, reject) {
-        fs.readFile(actualFileName, enc, function(err, data) {
+        fs.readFile(filename, enc, function(err, data) {
             if (err) {
                 reject(err);
             } else {
@@ -70,10 +67,14 @@ function getDirListing(globPath) {
     }
 }
 
-const commonGettextSourceFiles = getDirListing('./*{src/js,js,src}/gettext.js');
-const extendGettextSourceFile = getDirListing('./*{src/js,js,src}/extendGettext.js');
-const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFile);
-console.log(`gettext source files: ${gettextSourceFiles.join(' ')}`);
+const cwd = path.resolve('./');
+console.log();
+console.log('Gettext Extraction');
+console.log(` - processing directory: ${cwd}`);
+const commonGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/gettext.js`);
+const extendGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/extendGettext.js`);
+const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFiles);
+console.log(` - gettext source files: ${gettextSourceFiles.join(' ')}`);
 
 const allGettextDeclarations = promiseAny(gettextSourceFiles.map(gettextSourceFile => {
     return fs
@@ -104,8 +105,8 @@ const allGettextDeclarations = promiseAny(gettextSourceFiles.map(gettextSourceFi
         });
 }));
 
-const sourceJsFiles = getDirListingAsPromise('./src/**/!(gettext|extendGettext).js');
-const sourceTagsFiles = getDirListingAsPromise('./www/tags/**/*.html');
+const sourceJsFiles = getDirListingAsPromise(`${cwd}/src/**/!(gettext|extendGettext).js`);
+const sourceTagsFiles = getDirListingAsPromise(`${cwd}/www/tags/**/*.html`);
 
 const allSourceFiles = Promise
     .all([sourceJsFiles, sourceTagsFiles])
@@ -122,7 +123,7 @@ Promise.all([allSourceFiles, allGettextDeclarations])
         var filenames = results[0];
         var gettextDeclarations = results[1];
 
-        console.log(`gettext using files: ${filenames.join(' ')}`);
+        console.log(` - gettext using files: ${filenames.join(' ')}`);
 
         const usageResults = [];
         filenames.forEach(function(filename) {
@@ -175,26 +176,24 @@ Promise.all([allSourceFiles, allGettextDeclarations])
 
                 if (errors.length > 0) {
                     // Update extendGettext.js with these values
-                    const relPath = (__dirname.endsWith('/scripts')) ? '..' : '';
-                    const oldGettext = './src/js/extendGettext_old.js';
-                    const oldGettextPath = path.join(__dirname, relPath, oldGettext);
-                    const updatedGettextPath = path.join(__dirname, relPath, extendGettextSourceFile);
+                    const oldGettext = `${cwd}/src/js/extendGettext_old.js`;
+                    const updatedGettext = extendGettextSourceFiles[0];
 
-                    fs.renameSync(updatedGettextPath, oldGettextPath);
+                    fs.renameSync(updatedGettext, oldGettext);
 
                     getFile(oldGettext)
                         .then(function(file) {
                             var lines = file.toString().split('\n');
                             lines.forEach(function(line) {
-                                fs.appendFileSync(updatedGettextPath, `${line}\n`);
+                                fs.appendFileSync(updatedGettext, `${line}\n`);
                                 if (line.trim().startsWith('\'tet\':')) {
                                     errors.forEach(function(errorLine) {
-                                        fs.appendFileSync(updatedGettextPath, `${errorLine}\n`);
+                                        fs.appendFileSync(updatedGettext, `${errorLine}\n`);
                                     });
                                 }
                             });
 
-                            fs.unlink(oldGettextPath, function() { /* Don't care */ });
+                            fs.unlink(oldGettext, function() { /* Don't care */ });
                         });
                 }
             });
