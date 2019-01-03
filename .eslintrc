@@ -1,0 +1,48 @@
+{
+    "extends": "airbnb-base/legacy",
+    "parser": "babel-eslint",
+    "rules": {
+        "camelcase": [0, {"properties": "never"}],
+        "indent": [2, 4],
+        "max-len": 0,
+        "func-names": 0,
+        "no-underscore-dangle": 0,
+        "no-param-reassign": 0,
+        "space-before-function-paren": ["error", "never"],
+        "no-console": 0,
+        "comma-dangle": 0,
+        "object-curly-spacing": 0,
+        "no-alert": 0,
+        "no-prototype-builtins": 0,
+        "quote-props": 0,
+        "no-throw-literal": 0,
+        "no-unused-expressions": 0,
+        "chai-friendly/no-unused-expressions": 2
+    },
+    "globals": {
+        "_": false,
+        "$": false,
+        "RiotControl": false,
+        "riot": false,
+        "route": false,
+        "moment": false,
+        "PouchDB": false,
+        "device": false,
+        "cordova": false,
+        "Raven": false,
+        "codePush": false,
+        "BuildInfo": false,
+        "axios": false,
+        "AxiosMockAdapter": false,
+        "app": true,
+        "gettext": true
+    },
+    "env": {
+        "browser":true,
+        "es6": true,
+        "node": false
+    },
+    "plugins": [
+        "chai-friendly"
+    ]
+}
