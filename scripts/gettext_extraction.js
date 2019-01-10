@@ -16,9 +16,12 @@ var path = require('path');
 var fs = require('fs');
 var glob = require('glob');
 
+const cwd = path.resolve('./');
+const re = new RegExp(cwd, 'g');
+
 // make a Promise version of fs.readFile() - note that v10 of Node has this already
 fs.readFileAsync = function(filename, enc) {
-    console.log(` - reading file: ${filename}`);
+    console.log(` - reading file: ${filename.replace(re, '')}`);
     return new Promise(function(resolve, reject) {
         fs.readFile(filename, enc, function(err, data) {
             if (err) {
@@ -29,18 +32,6 @@ fs.readFileAsync = function(filename, enc) {
         });
     });
 };
-
-// inverts a promise
-function reverse(promise) {
-    return new Promise((resolve, reject) => Promise.resolve(promise).then(reject, resolve));
-}
-
-/** if any promise succeeds returns resolve,
- * if all promises fails, returns reject
- */
-function promiseAny(iterable) {
-    return reverse(Promise.all([...iterable].map(reverse)));
-}
 
 // utility function, return Promise
 function getFile(filename) {
@@ -67,16 +58,15 @@ function getDirListing(globPath) {
     }
 }
 
-const cwd = path.resolve('./');
 console.log();
 console.log('Gettext Extraction');
 console.log(` - processing directory: ${cwd}`);
-const commonGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/gettext.js`);
+const commonGettextSourceFiles = getDirListing(`${cwd}/node_modules/simple-gettext/gettext.js`);
 const extendGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/extendGettext.js`);
 const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFiles);
-console.log(` - gettext source files: ${gettextSourceFiles.join(' ')}`);
+console.log(` - gettext source files: ${gettextSourceFiles.join(' ').replace(re, '')}`);
 
-const allGettextDeclarations = promiseAny(gettextSourceFiles.map(gettextSourceFile => {
+const allGettextDeclarations = Promise.all(gettextSourceFiles.map(gettextSourceFile => {
     return fs
         .readFileAsync(gettextSourceFile, 'utf8')
         .then(function(data) {
@@ -105,7 +95,7 @@ const allGettextDeclarations = promiseAny(gettextSourceFiles.map(gettextSourceFi
         });
 }));
 
-const sourceJsFiles = getDirListingAsPromise(`${cwd}/src/**/!(gettext|extendGettext).js`);
+const sourceJsFiles = getDirListingAsPromise(`${cwd}/src/**/!(gettext|extendGettext|extendGettext_old).js`);
 const sourceTagsFiles = getDirListingAsPromise(`${cwd}/www/tags/**/*.html`);
 
 const allSourceFiles = Promise
@@ -121,9 +111,13 @@ const allSourceFiles = Promise
 Promise.all([allSourceFiles, allGettextDeclarations])
     .then(function(results) {
         var filenames = results[0];
-        var gettextDeclarations = results[1];
-
-        console.log(` - gettext using files: ${filenames.join(' ')}`);
+        var gettextDeclarations = {};
+        results[1].forEach((declarationSet) => {
+            Object.keys(declarationSet).forEach(function(declarationKey) {
+                gettextDeclarations[declarationKey] = declarationSet[declarationKey];
+            });
+        });
+        console.log(` - files using gettext: ${filenames.join(' ').replace(re, '')}`);
 
         const usageResults = [];
         filenames.forEach(function(filename) {
@@ -170,7 +164,7 @@ Promise.all([allSourceFiles, allGettextDeclarations])
                 var errors = [];
                 Object.keys(gettextDeclarations).forEach(function(gettextDeclarationKey) {
                     if (gettextDeclarations[gettextDeclarationKey].err) {
-                        errors.push(`            ${gettextDeclarationKey}: undefined,`);
+                        errors.push(`    ${gettextDeclarationKey}: undefined,`);
                     }
                 });
 
@@ -184,9 +178,12 @@ Promise.all([allSourceFiles, allGettextDeclarations])
                     getFile(oldGettext)
                         .then(function(file) {
                             var lines = file.toString().split('\n');
+                            while (lines[lines.length - 1] === '') {
+                                lines.pop();
+                            }
                             lines.forEach(function(line) {
                                 fs.appendFileSync(updatedGettext, `${line}\n`);
-                                if (line.trim().startsWith('\'tet\':')) {
+                                if (line.trim().startsWith('\'tet\':') || line.trim().indexOf('\'tet\',') > -1) {
                                     errors.forEach(function(errorLine) {
                                         fs.appendFileSync(updatedGettext, `${errorLine}\n`);
                                     });
