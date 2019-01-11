@@ -41,7 +41,8 @@ function getFile(filename) {
 function getDirListingAsPromise(globPath) {
     var filenames = [];
     try {
-        filenames = glob.sync(globPath);
+        const globOptions = {follow: true, nocase: true};
+        filenames = glob.sync(globPath, globOptions);
         return Promise.resolve(filenames);
     } catch (err) {
         return Promise.reject(err);
@@ -61,7 +62,8 @@ function getDirListing(globPath) {
 console.log();
 console.log('Gettext Extraction');
 console.log(` - processing directory: ${cwd}`);
-const commonGettextSourceFiles = getDirListing(`${cwd}/node_modules/simple-gettext/gettext.js`);
+console.log('   note that symlinked folders will be skipped');
+const commonGettextSourceFiles = getDirListing(`${cwd}/node_modules/{simple-gettext/,**/extend}gettext.js`);
 const extendGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/extendGettext.js`);
 const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFiles);
 console.log(` - gettext source files: ${gettextSourceFiles.join(' ').replace(re, '')}`);
