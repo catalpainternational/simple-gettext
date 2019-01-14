@@ -15,13 +15,27 @@
 var path = require('path');
 var fs = require('fs');
 var glob = require('glob');
+var process = require('process');
+var minimist = require('minimist');
 
 const cwd = path.resolve('./');
 const re = new RegExp(cwd, 'g');
+const args = minimist(process.argv.slice(2));
+const isDebug = args.d;
+let commonGettextPath = `${cwd}/node_modules/{simple-gettext/,**/extend}gettext.js`;
+if (args.commonPath) {
+    commonGettextPath = args.commonPath;
+}
+
+function debug(message) {
+    if (isDebug) {
+        console.log(message);
+    }
+}
 
 // make a Promise version of fs.readFile() - note that v10 of Node has this already
 fs.readFileAsync = function(filename, enc) {
-    console.log(` - reading file: ${filename.replace(re, '')}`);
+    debug(` - reading file: ${filename.replace(re, '')}`);
     return new Promise(function(resolve, reject) {
         fs.readFile(filename, enc, function(err, data) {
             if (err) {
@@ -52,21 +66,22 @@ function getDirListingAsPromise(globPath) {
 function getDirListing(globPath) {
     var filenames = [];
     try {
-        filenames = glob.sync(globPath);
+        const globOptions = {follow: true, nocase: true};
+        filenames = glob.sync(globPath, globOptions);
         return filenames;
     } catch (err) {
         return [];
     }
 }
 
-console.log();
-console.log('Gettext Extraction');
-console.log(` - processing directory: ${cwd}`);
-console.log('   note that symlinked folders will be skipped');
-const commonGettextSourceFiles = getDirListing(`${cwd}/node_modules/{simple-gettext/,**/extend}gettext.js`);
+debug('');
+debug('Gettext Extraction');
+debug(` - processing directory: ${cwd}`);
+debug('   note that symlinked folders will be skipped');
+const commonGettextSourceFiles = getDirListing(commonGettextPath);
 const extendGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/extendGettext.js`);
 const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFiles);
-console.log(` - gettext source files: ${gettextSourceFiles.join(' ').replace(re, '')}`);
+debug(` - gettext source files: ${gettextSourceFiles.join(' ').replace(re, '')}`);
 
 const allGettextDeclarations = Promise.all(gettextSourceFiles.map(gettextSourceFile => {
     return fs
@@ -119,7 +134,7 @@ Promise.all([allSourceFiles, allGettextDeclarations])
                 gettextDeclarations[declarationKey] = declarationSet[declarationKey];
             });
         });
-        console.log(` - files using gettext: ${filenames.join(' ').replace(re, '')}`);
+        debug(` - files using gettext: ${filenames.join(' ').replace(re, '')}`);
 
         const usageResults = [];
         filenames.forEach(function(filename) {
