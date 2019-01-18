@@ -113,7 +113,7 @@ const allGettextDeclarations = Promise.all(gettextSourceFiles.map(gettextSourceF
 }));
 
 const sourceJsFiles = getDirListingAsPromise(`${cwd}/src/**/!(gettext|extendGettext|extendGettext_old).js`);
-const sourceTagsFiles = getDirListingAsPromise(`${cwd}/www/tags/**/*.html`);
+const sourceTagsFiles = getDirListingAsPromise(`${cwd}/src/tags/**/*.html`);
 
 const allSourceFiles = Promise
     .all([sourceJsFiles, sourceTagsFiles])
