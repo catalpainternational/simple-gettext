@@ -22,9 +22,13 @@ const cwd = path.resolve('./');
 const re = new RegExp(cwd, 'g');
 const args = minimist(process.argv.slice(2));
 const isDebug = args.d;
-let commonGettextPath = `${cwd}/node_modules/{simple-gettext/,**/extend}gettext.js`;
+let commonGettextPath = `${cwd}/node_modules/simple-gettext/gettext.js`;
 if (args.commonPath) {
     commonGettextPath = args.commonPath;
+}
+let otherExtendGettextPath = `${cwd}/node_modules/**/extendgettext.js`;
+if (args.otherPath) {
+    otherExtendGettextPath = args.otherPath;
 }
 
 function debug(message) {
@@ -53,14 +57,11 @@ function getFile(filename) {
 }
 
 function getDirListingAsPromise(globPath) {
-    var filenames = [];
-    try {
-        const globOptions = {follow: true, nocase: true};
-        filenames = glob.sync(globPath, globOptions);
+    var filenames = getDirListing(globPath);
+    if (!!filenames && filenames.length) {
         return Promise.resolve(filenames);
-    } catch (err) {
-        return Promise.reject(err);
     }
+    return Promise.reject();
 }
 
 function getDirListing(globPath) {
@@ -79,8 +80,11 @@ debug('Gettext Extraction');
 debug(` - processing directory: ${cwd}`);
 debug('   note that symlinked folders will be skipped');
 const commonGettextSourceFiles = getDirListing(commonGettextPath);
-const extendGettextSourceFiles = getDirListing(`${cwd}/*{src/js,js,src}/extendGettext.js`);
-const gettextSourceFiles = commonGettextSourceFiles.concat(extendGettextSourceFiles);
+debug(` - gettext source library files: ${commonGettextSourceFiles.join(' ').replace(re, '')}`);
+const otherExtendGettextSourceFiles = getDirListing(otherExtendGettextPath);
+debug(` - other extendGettext source library files: ${otherExtendGettextSourceFiles.join(' ').replace(re, '')}`);
+const extendGettextSourceFiles = getDirListing(`${cwd}/**{src/js,js,src}/extendGettext.js`);
+const gettextSourceFiles = commonGettextSourceFiles.concat(otherExtendGettextSourceFiles).concat(extendGettextSourceFiles);
 debug(` - gettext source files: ${gettextSourceFiles.join(' ').replace(re, '')}`);
 
 const allGettextDeclarations = Promise.all(gettextSourceFiles.map(gettextSourceFile => {
